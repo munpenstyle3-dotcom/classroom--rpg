@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG Classroom Level Up - ระบบอัปเลเวลและสัตว์เลี้ยง ป.1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <span class="logo-icon">🏰</span>
+      <h1 id="classroom-main-title">ห้องเรียนนักผจญภัย ป.1</h1>
+    </div>
+    <div class="header-controls">
+      <button class="btn-gacha" id="btn-gacha-toggle" onclick="openGachaModal()">
+        <span>🎰</span> สุ่มผู้โชคดี (Gacha)
+      </button>
+      <button class="btn-teacher" id="btn-teacher-toggle">
+        <span>⚙️</span> เปิดระบบครู
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard -->
+  <main>
+    <!-- Student Grid -->
+    <div class="classroom-container" id="classroom-grid">
+      <!-- Student cards will be loaded here dynamically via app.js -->
+    </div>
+
+    <!-- Quest Board -->
+    <div class="quest-board-container">
+      <div class="quest-board-header">
+        <h2 class="quest-board-title">📜 กระดานภารกิจการบ้านห้องเรียน (Quests)</h2>
+      </div>
+      <div class="quest-grid" id="quest-grid">
+        <!-- Quests will be loaded here dynamically via app.js -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Level Up & Hatch Modal -->
+  <div class="modal-overlay" id="level-up-modal">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="modal-content">
+      <h2 class="level-title-animated" id="modal-title-header">LEVEL UP!</h2>
+      <div class="modal-avatar-frame">
+        <img id="modal-avatar" src="" alt="Avatar" class="modal-avatar-image">
+      </div>
+      <h3 class="modal-char-name" id="modal-name">ชื่อนักเรียน</h3>
+      <p class="modal-class-title" id="modal-class">อาชีพ</p>
+      <div class="modal-level-up-tag" id="modal-level-tag">LEVEL 2</div>
+      <div>
+        <button class="btn-close-modal" onclick="closeLevelUpModal()">ออกผจญภัยต่อ! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gacha Randomizer Modal -->
+  <div class="modal-overlay" id="gacha-modal">
+    <div class="modal-content gacha-modal-content">
+      <div class="gacha-header">
+        <h2 class="level-title-animated" id="gacha-modal-title" style="font-size: 1.8rem; margin-bottom: 5px;">🎰 แท่นอัญเชิญ & จัดทีม (Gacha System)</h2>
+        <p class="gacha-subtitle" id="gacha-subtitle">สุ่มนักเรียนผู้โชคดีสำหรับทำภารกิจ หรือสุ่มจัดแบ่งกลุ่มปาร์ตี้ผจญภัย!</p>
+      </div>
+
+      <!-- Gacha Mode Tabs -->
+      <div class="gacha-mode-tabs">
+        <button type="button" class="btn-gacha-mode-tab active" id="tab-gacha-single" onclick="switchGachaTab('single')">
+          <span>🎯</span> สุ่มเดี่ยว (Solo Pick)
+        </button>
+        <button type="button" class="btn-gacha-mode-tab" id="tab-gacha-teams" onclick="switchGachaTab('teams')">
+          <span>⚔️</span> สุ่มจัดกลุ่ม / ปาร์ตี้ (Team Gacha)
+        </button>
+      </div>
+
+      <!-- Student Selection Pool Section (Shared across both modes) -->
+      <div class="gacha-selector-container" id="gacha-shared-pool-container">
+        <div class="gacha-selector-header">
+          <span id="gacha-pool-label">🎯 ผู้มีสิทธิ์เข้าร่วมสุ่ม:</span>
+          <div class="gacha-selector-actions">
+            <button type="button" class="btn-gacha-select-all" onclick="toggleAllGachaStudents(true)">☑️ เลือกทั้งหมด</button>
+            <button type="button" class="btn-gacha-select-none" onclick="toggleAllGachaStudents(false)">☐ ล้างออก</button>
+          </div>
+        </div>
+        <div class="gacha-student-list" id="gacha-student-list">
+          <!-- Checkbox chips generated dynamically via app.js -->
+        </div>
+      </div>
+
+      <!-- ================= SINGLE GACHA CONTAINER ================= -->
+      <div id="gacha-solo-container">
+        <!-- Gacha Stage Container -->
+        <div class="gacha-stage" id="gacha-stage">
+          <!-- Idle State (Before Spin) -->
+          <div class="gacha-idle-view" id="gacha-idle-view">
+            <div class="gacha-orb-wrapper">
+              <div class="gacha-orb-ring"></div>
+              <div class="gacha-orb-core">🔮</div>
+            </div>
+            <p class="gacha-idle-text" id="gacha-student-count-text">พร้อมสุ่มจากนักเรียนในห้องเรียน</p>
+
+            <button class="btn-gacha-spin" id="btn-start-gacha" onclick="startGachaSpin()">
+              ✨ เริ่มอัญเชิญผู้โชคดี! (Spin)
+            </button>
+          </div>
+
+          <!-- Spinning State (Animation Reel) -->
+          <div class="gacha-spin-view" id="gacha-spin-view" style="display: none;">
+            <div class="gacha-spin-aura" id="gacha-spin-aura"></div>
+            <div class="gacha-card-reel" id="gacha-card-reel">
+              <div class="gacha-reel-avatar-frame">
+                <img id="gacha-reel-avatar" src="" alt="Spinning..." class="gacha-reel-avatar-img" onerror="this.src='https://placehold.co/150/1a1738/ffd700?text=Hero'">
+              </div>
+              <h3 class="gacha-reel-name" id="gacha-reel-name">กำลังอัญเชิญ...</h3>
+              <p class="gacha-reel-class" id="gacha-reel-class">???</p>
+            </div>
+            <div class="gacha-spinning-banner" id="gacha-spin-status">🌀 กำลังอัญเชิญผู้พิทักษ์...</div>
+          </div>
+
+          <!-- Result State (Winner Reveal) -->
+          <div class="gacha-result-view" id="gacha-result-view" style="display: none;">
+            <div class="gacha-result-badge">🌟 ผู้ถูกเลือกระดับ SSR! 🌟</div>
+            <div class="gacha-winner-card" id="gacha-winner-card">
+              <div class="gacha-winner-avatar-frame">
+                <img id="gacha-winner-avatar" src="" alt="Winner Avatar" class="gacha-winner-avatar-img" onerror="this.src='https://placehold.co/150/1a1738/ffd700?text=Hero'">
+                <div class="gacha-winner-number-tag" id="gacha-winner-number">#1</div>
+              </div>
+              <h2 class="gacha-winner-name" id="gacha-winner-name">ชื่อนักเรียน</h2>
+              <div class="gacha-winner-class" id="gacha-winner-class">อาชีพ</div>
+              <div class="gacha-winner-stats">
+                <span id="gacha-winner-level">LV 1</span>
+                <span id="gacha-winner-coins">🪙 0 เหรียญ</span>
+                <span id="gacha-winner-pet">🐾 คู่หู: ไม่มี</span>
+              </div>
+            </div>
+            <div class="gacha-action-row">
+              <button class="btn-gacha-reward" id="btn-gacha-reward" onclick="rewardGachaWinner()">
+                ⭐ ให้รางวัล (+10 EXP, +5 🪙)
+              </button>
+              <button class="btn-gacha-spin-again" onclick="resetGachaModalState()">
+                🔄 สุ่มใหม่อีกครั้ง
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TEAM GACHA CONTAINER ================= -->
+      <div id="gacha-teams-container" style="display: none;">
+        <!-- Team Setup & Options -->
+        <div class="gacha-team-setup-box" id="gacha-team-setup-box">
+          <div class="gacha-team-config-row">
+            <label class="gacha-team-config-label">
+              <span>🛡️ จำนวนกลุ่มที่ต้องการแบ่ง:</span>
+            </label>
+            <div class="gacha-team-counter-ctrl">
+              <button type="button" class="btn-team-counter" onclick="changeGachaTeamCount(-1)">➖</button>
+              <span class="gacha-team-count-display" id="gacha-team-count-val">4</span>
+              <span class="gacha-team-count-unit">กลุ่ม</span>
+              <button type="button" class="btn-team-counter" onclick="changeGachaTeamCount(1)">➕</button>
+            </div>
+          </div>
+
+          <!-- Quick presets: 2, 3, 4, 5, 6 ทีม -->
+          <div class="gacha-team-presets">
+            <button type="button" class="btn-team-preset" id="preset-team-2" onclick="setGachaTeamCount(2)">2 กลุ่ม</button>
+            <button type="button" class="btn-team-preset" id="preset-team-3" onclick="setGachaTeamCount(3)">3 กลุ่ม</button>
+            <button type="button" class="btn-team-preset active" id="preset-team-4" onclick="setGachaTeamCount(4)">4 กลุ่ม</button>
+            <button type="button" class="btn-team-preset" id="preset-team-5" onclick="setGachaTeamCount(5)">5 กลุ่ม</button>
+            <button type="button" class="btn-team-preset" id="preset-team-6" onclick="setGachaTeamCount(6)">6 กลุ่ม</button>
+          </div>
+
+          <p class="gacha-team-calc-hint" id="gacha-team-calc-hint">มีผู้เข้าร่วม 10 คน → เฉลี่ยกลุ่มละ ~2-3 คน</p>
+
+          <button class="btn-gacha-spin btn-gacha-teams-spin" id="btn-start-team-gacha" onclick="startTeamGachaSpin()">
+            🎲 สุ่มจัดตั้งปาร์ตี้ / แบ่งทีม!
+          </button>
+        </div>
+
+        <!-- Team Shuffling Animation State -->
+        <div class="gacha-teams-anim-view" id="gacha-teams-anim-view" style="display: none;">
+          <div class="gacha-spin-aura aura-gold"></div>
+          <div class="gacha-teams-spinner-core">⚔️</div>
+          <h3 class="gacha-teams-anim-text" id="gacha-teams-anim-text">🌀 กำลังรวบรวมสมาชิกเข้าสู่กิลด์ต่าง ๆ...</h3>
+        </div>
+
+        <!-- Team Results View -->
+        <div class="gacha-teams-result-view" id="gacha-teams-result-view" style="display: none;">
+          <div class="gacha-result-badge">⚔️ ผลการจัดทีมปาร์ตี้ผจญภัย! ⚔️</div>
+          
+          <div class="gacha-teams-grid" id="gacha-teams-grid">
+            <!-- Team Guild Cards rendered dynamically -->
+          </div>
+
+          <div class="gacha-teams-footer-actions">
+            <button type="button" class="btn-gacha-action-secondary" onclick="copyGachaTeamsToClipboard()">
+              📋 คัดลอกรายชื่อทีม
+            </button>
+            <button type="button" class="btn-gacha-spin-again" onclick="startTeamGachaSpin()">
+              🔄 สุ่มจัดทีมใหม่
+            </button>
+            <button type="button" class="btn-gacha-action-secondary" onclick="resetTeamGachaSetup()">
+              ⚙️ ตั้งค่าใหม่
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-close-modal" onclick="closeGachaModal()" style="margin-top: 15px;">✕ ปิดหน้าต่าง</button>
+    </div>
+  </div>
+
+  <!-- Edit Student Modal -->
+  <div class="modal-overlay" id="edit-student-modal">
+    <div class="modal-content edit-student-content">
+      <h2 class="level-title-animated" id="edit-modal-title" style="font-size: 1.8rem; margin-bottom: 15px;">✏️ แก้ไขข้อมูลตัวละคร</h2>
+      <form id="edit-student-form">
+        <input type="hidden" id="edit-student-id">
+        <div class="edit-modal-layout">
+          <!-- Left Column: Avatar Preview -->
+          <div class="edit-left-col">
+            <div class="avatar-upload-frame" onclick="triggerEditAvatarUpload()">
+              <img id="edit-avatar-preview" src="" alt="Preview" class="avatar-upload-preview">
+              <div class="avatar-upload-overlay">
+                <span>📸</span>
+                <span>อัปโหลดรูปภาพ</span>
+              </div>
+            </div>
+            <input type="file" id="edit-avatar-file-input" class="hidden-file-input" accept="image/*" onchange="handleEditAvatarUpload(event)">
+            <div class="preset-avatars-grid">
+              <button type="button" class="btn-preset-avatar" onclick="setPresetAvatar('real')">รูปถ่ายจริง</button>
+              <button type="button" class="btn-preset-avatar" id="btn-preset-anime" onclick="setPresetAvatar('anime')">อวาตาร์ RPG</button>
+            </div>
+          </div>
+          
+          <!-- Right Column: Fields -->
+          <div class="edit-right-col">
+            <div class="form-group">
+              <label for="edit-student-name">ชื่อนักเรียน</label>
+               <input type="text" id="edit-student-name" placeholder="ระบุชื่อนักเรียน" required>
+            </div>
+            
+            <div class="input-row-grid">
+              <div class="form-group">
+                <label for="edit-student-number">เลขที่</label>
+                <input type="number" id="edit-student-number" min="1" required>
+              </div>
+              <div class="form-group">
+                <label for="edit-student-class">อาชีพ</label>
+                <select id="edit-student-class">
+                  <option value="ผู้พิทักษ์ (Guardian)">🛡️ ผู้พิทักษ์ (Guardian)</option>
+                  <option value="จอมเวทย์ (Mage)">🔮 จอมเวทย์ (Mage)</option>
+                  <option value="นักบวช (Cleric)">🌿 นักบวช (Cleric)</option>
+                  <option value="นักธนู (Archer)">🏹 นักธนู (Archer)</option>
+                  <option value="นักอัญเชิญ (Summoner)">✨ นักอัญเชิญ (Summoner)</option>
+                  <option value="นักดาบเวทมนตร์ (Spellsword)">⚔️ นักดาบเวทมนตร์ (Spellsword)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-row-grid">
+              <div class="form-group">
+                <label for="edit-student-level">เลเวล (LV)</label>
+                <input type="number" id="edit-student-level" min="1" required>
+              </div>
+              <div class="form-group">
+                <label for="edit-student-exp">ค่า EXP (0-99)</label>
+                <input type="number" id="edit-student-exp" min="0" max="99" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-student-coins">เหรียญทองสะสม 🪙</label>
+              <input type="number" id="edit-student-coins" min="0" required>
+            </div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button type="submit" class="btn-submit" id="btn-save-edit-student" style="flex: 2; margin-top: 0;">💾 บันทึกการเปลี่ยนแปลง</button>
+          <button type="button" class="btn-utility" onclick="closeEditStudentModal()" style="flex: 1;">ยกเลิก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pet Care & Shop Modal -->
+  <div class="modal-overlay" id="pet-care-modal">
+    <div class="modal-content pet-modal-content">
+      <h2 class="level-title-animated" style="font-size: 1.8rem; margin-bottom: 15px;">🏪 ร้านค้าและห้องดูแลสัตว์เลี้ยง</h2>
+      
+      <!-- Pet Selection Tabs -->
+      <div class="shop-tabs" id="pet-selection-tabs" style="display: none; margin-bottom: 15px;">
+        <button class="btn-shop-tab active" id="tab-select-pet1" onclick="switchActivePetSlot(1)">🐾 สัตว์เลี้ยง 1</button>
+        <button class="btn-shop-tab" id="tab-select-pet2" onclick="switchActivePetSlot(2)">🐾 สัตว์เลี้ยง 2</button>
+      </div>
+
+      <!-- Pet Details Card -->
+      <div class="pet-details-layout">
+        <span class="pet-details-avatar" id="pet-modal-emoji">🐱</span>
+        <div class="pet-details-stats">
+          <h3 id="pet-modal-name-label" style="font-size: 1.3rem;">ชื่อสัตว์เลี้ยง</h3>
+          <span id="pet-modal-owner" style="font-size: 0.85rem; color: var(--text-gold);">ผู้ดูแล: เจ้านาย | 🪙 0 เหรียญ</span>
+          <span id="pet-modal-level" style="font-size: 0.8rem; color: var(--text-muted);">เลเวล: 1 (EXP: 0/100)</span>
+          
+          <div class="pet-bar-container" style="margin-top: 5px;">
+            <div class="pet-bar-text">
+              <span>ความสุข ❤️</span>
+              <span id="pet-modal-happy-val">100/100</span>
+            </div>
+            <div class="pet-bar-bg">
+              <div class="pet-bar-fill fill-happy" id="pet-modal-happy-bar" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <div class="pet-bar-container" style="margin-top: 5px;">
+            <div class="pet-bar-text">
+              <span>เลเวลสัตว์เลี้ยง EXP ⭐</span>
+              <span id="pet-modal-exp-val">0/100</span>
+            </div>
+            <div class="pet-bar-bg">
+              <div class="pet-bar-fill fill-hatch" id="pet-modal-exp-bar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pet House Box Area -->
+      <div class="pet-house-area">
+        <div class="pet-house-title">🏡 บ้านแสนสุขของคู่หู (Pet Bedroom)</div>
+        
+        <!-- Cozy Window -->
+        <div class="pet-room-window"></div>
+        
+        <!-- Floor Shadows & Actor -->
+        <div class="pet-floor-shadow" id="pet-room-floor-shadow" style="left: 50%; bottom: 25px;"></div>
+        <div id="pet-room-actor" class="pet-pixel-sprite pet-breathing" style="position: absolute; left: 50%; bottom: 30px; transform: translate(-50%, 0); transition: left 2.5s ease-in-out, bottom 2.5s ease-in-out;">
+          <span class="pet-display" id="pet-house-emoji">🐱</span>
+        </div>
+        
+        <!-- Floor Shadows & Actor 2 (for second pet) -->
+        <div class="pet-floor-shadow" id="pet-room-floor-shadow2" style="left: 35%; bottom: 25px; display: none;"></div>
+        <div id="pet-room-actor2" class="pet-pixel-sprite pet-breathing" style="position: absolute; left: 35%; bottom: 30px; transform: translate(-50%, 0); transition: left 2.5s ease-in-out, bottom 2.5s ease-in-out; display: none;">
+          <span class="pet-display" id="pet-house-emoji2">🥚</span>
+        </div>
+        
+        <div class="pet-house-decorations" id="pet-house-decorations-list">
+          <!-- Decorations will appear here -->
+        </div>
+      </div>
+
+      <!-- Expedition Timer Area -->
+      <div class="expedition-bar-wrapper">
+        <div class="expedition-label-row">
+          <span>🗺️ ระบบการสำรวจผจญภัย</span>
+          <span id="expedition-timer-text">พร้อมเดินทาง!</span>
+        </div>
+        <div class="pet-bar-bg" style="margin-bottom: 8px;">
+          <div class="pet-bar-fill fill-hatch" id="expedition-progress-bar" style="width: 0%; background: #9c27b0;"></div>
+        </div>
+        <button class="btn-pet-action" id="btn-pet-expedition" onclick="handlePetExpeditionAction()">🗺️ ส่งไปผจญภัยหาของป่า (1 นาที)</button>
+      </div>
+
+      <!-- Rename Area -->
+      <div class="pet-rename-container" style="margin-bottom: 20px;">
+        <input type="text" class="pet-rename-input" id="pet-rename-input-field" placeholder="ตั้งชื่อใหม่ให้สัตว์เลี้ยง">
+        <button class="btn-rename" onclick="renamePet()">🏷️ เปลี่ยนชื่อ</button>
+      </div>
+
+      <!-- Shop Tabs -->
+      <div class="shop-tabs">
+        <button class="btn-shop-tab active" id="tab-shop-items" onclick="switchShopTab('items')">🍲 อาหาร & ของเล่น</button>
+        <button class="btn-shop-tab" id="tab-shop-decor" onclick="switchShopTab('decor')">🏡 ของตกแต่งบ้าน</button>
+      </div>
+
+      <!-- Shop Items (Food & Toys) -->
+      <div class="shop-grid" id="shop-items-grid">
+        <div class="shop-item">
+          <span class="shop-item-emoji">🍪</span>
+          <span class="shop-item-name">คุกกี้เวทมนตร์</span>
+          <span class="shop-item-desc">เพิ่มความสุข +20, EXP +5</span>
+          <button class="btn-buy" data-item="cookie" onclick="buyPetItem('cookie')">🪙 10 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🧶</span>
+          <span class="shop-item-name">ไหมพรมวิเศษ</span>
+          <span class="shop-item-desc">เพิ่มความสุข +35, EXP +10</span>
+          <button class="btn-buy" data-item="yarn" onclick="buyPetItem('yarn')">🪙 15 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🍎</span>
+          <span class="shop-item-name">ผลไม้ศักดิ์สิทธิ์</span>
+          <span class="shop-item-desc">เพิ่มสุข +50, EXP +25</span>
+          <button class="btn-buy" data-item="fruit" onclick="buyPetItem('fruit')">🪙 20 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🧸</span>
+          <span class="shop-item-name">ตุ๊กตาหมีอัศวิน</span>
+          <span class="shop-item-desc">เพิ่มสุข +70, EXP +40</span>
+          <button class="btn-buy" data-item="bear" onclick="buyPetItem('bear')">🪙 30 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🥚</span>
+          <span class="shop-item-name">ไข่สัตว์เลี้ยงใบใหม่</span>
+          <span class="shop-item-desc">ฟักตัวใหม่ (แทนที่ตัวเดิม)</span>
+          <button class="btn-buy" data-item="new_egg" id="btn-buy-new-egg" onclick="buyNewEgg()">🪙 100 เหรียญ</button>
+        </div>
+      </div>
+
+      <!-- Shop Decorations -->
+      <div class="shop-grid" id="shop-decor-grid" style="display: none;">
+        <div class="shop-item">
+          <span class="shop-item-emoji">🛏️</span>
+          <span class="shop-item-name">เตียงนอนแสนอุ่น</span>
+          <span class="shop-item-desc">แต่งบ้านสัตว์เลี้ยงให้น่าอยู่</span>
+          <button class="btn-buy" data-item="bed" onclick="buyDecorItem('bed')">🪙 15 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🌳</span>
+          <span class="shop-item-name">ต้นไม้จิ๋วแต่งบ้าน</span>
+          <span class="shop-item-desc">แต่งบ้านสัตว์เลี้ยงให้น่าอยู่</span>
+          <button class="btn-buy" data-item="tree" onclick="buyDecorItem('tree')">🪙 10 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🏰</span>
+          <span class="shop-item-name">ปราสาทของเล่น</span>
+          <span class="shop-item-desc">แต่งบ้านสัตว์เลี้ยงให้น่าอยู่</span>
+          <button class="btn-buy" data-item="castle" onclick="buyDecorItem('castle')">🪙 25 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🥣</span>
+          <span class="shop-item-name">ชามทองคำ</span>
+          <span class="shop-item-desc">แต่งบ้านสัตว์เลี้ยงให้น่าอยู่</span>
+          <button class="btn-buy" data-item="bowl" onclick="buyDecorItem('bowl')">🪙 20 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🖼️</span>
+          <span class="shop-item-name">กรอบรูปแห่งความทรงจำ</span>
+          <span class="shop-item-desc">ประดับผนังด้วยรูปแสนพิเศษ</span>
+          <button class="btn-buy" data-item="picture" onclick="buyDecorItem('picture')">🪙 18 เหรียญ</button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-item-emoji">🪔</span>
+          <span class="shop-item-name">โคมไฟเวทมนตร์</span>
+          <span class="shop-item-desc">เติมแสงอบอุ่นให้บ้านสัตว์เลี้ยง</span>
+          <button class="btn-buy" data-item="lamp" onclick="buyDecorItem('lamp')">🪙 22 เหรียญ</button>
+        </div>
+      </div>
+
+      <button class="btn-close-modal" onclick="closePetCareModal()" style="margin-top: 20px;">ปิดห้องดูแลสัตว์เลี้ยง ✕</button>
+    </div>
+  </div>
+
+  <!-- Passcode Modal (Teacher Mode Lock) -->
+  <div class="passcode-modal" id="passcode-modal">
+    <div class="passcode-content">
+      <h3 style="margin-bottom: 15px; color: var(--border-gold);">🔒 รหัสผ่านสำหรับคุณครู</h3>
+      <div class="form-group">
+        <label for="passcode-input">กรุณากรอกรหัสผ่านเพื่อเข้าสู่โหมดแก้ไข</label>
+        <input type="password" id="passcode-input" placeholder="ใส่รหัสผ่าน (ค่าเริ่มต้น 1234)">
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="btn-submit" id="passcode-submit" style="flex: 1; margin-top: 0;">ยืนยัน</button>
+        <button class="btn-utility" id="passcode-close" style="flex: 1;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher Control Panel (Drawer) -->
+  <div class="panel-overlay" id="teacher-panel">
+    <div class="panel-header">
+      <h2 class="panel-title">🛡️ แผงควบคุมของคุณครู</h2>
+      <button class="btn-close-panel" id="btn-close-panel">✕</button>
+    </div>
+    
+    <!-- Classroom Title Setting -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 8px; color: var(--border-gold);">🏫 ตั้งค่าชื่อห้องเรียน</h3>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="classroom-title-input" placeholder="เช่น ห้องเรียนนักผจญภัย ป.2" style="flex: 1;">
+        <button type="button" class="btn-submit" id="btn-save-classroom-title" onclick="saveClassroomTitle()" style="margin-top: 0; padding: 8px 14px; white-space: nowrap;">💾 บันทึก</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- System Backup Utilities -->
+    <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--border-gold);">📁 สำรองและกู้คืนข้อมูล</h3>
+    <div class="admin-utilities">
+      <button class="btn-utility btn-utility-primary" id="btn-backup">📥 สำรองข้อมูล</button>
+      <button class="btn-utility" id="btn-import">📤 กู้คืนข้อมูล</button>
+      <input type="file" id="import-file-input" class="hidden-file-input" accept=".json">
+    </div>
+    <button class="btn-utility btn-utility-danger" id="btn-reset-all" style="width: 100%; margin-bottom: 20px;">♻️ รีเซ็ตข้อมูลทั้งหมด</button>
+
+    <div class="divider"></div>
+
+    <!-- Quest Management Form -->
+    <h3 class="panel-title" style="font-size: 1.2rem; margin-bottom: 15px;">📜 จัดการกระดานภารกิจ</h3>
+    <form id="teacher-quest-form">
+      <div class="form-group">
+        <label for="quest-title-input">ชื่อภารกิจ / การบ้าน</label>
+        <input type="text" id="quest-title-input" placeholder="เช่น ส่งการบ้านหน้า 15 📖" required>
+      </div>
+      <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <label for="quest-exp-reward">รางวัล EXP</label>
+          <input type="number" id="quest-exp-reward" value="20" min="0">
+        </div>
+        <div>
+          <label for="quest-coin-reward">รางวัลเหรียญ 🪙</label>
+          <input type="number" id="quest-coin-reward" value="10" min="0">
+        </div>
+      </div>
+      <button type="submit" class="btn-submit" style="width: 100%; margin-top: 10px;">ปักหมุดภารกิจ 📌</button>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
